@@ -161,21 +161,21 @@ module "elasticache" {
 
 All resources follow the pattern: `{region_prefix}-{resource-type}-{account_name}-{project_name}-{key}`
 
-| Resource             | Example Name                            |
-|----------------------|-----------------------------------------|
-| Replication Group    | `ause1-redis-prod-myapp-main`           |
-| Cluster              | `ause1-cache-prod-myapp-main`           |
-| Serverless Cache     | `ause1-cache-prod-myapp-main`           |
-| Subnet Group         | `ause1-cache-subnet-prod-myapp-main`    |
-| Parameter Group      | `ause1-cache-pg-prod-myapp-redis71`     |
-| User Group           | `ause1-cache-ug-prod-myapp-main`        |
+| Resource          | Example Name                         |
+| ----------------- | ------------------------------------ |
+| Replication Group | `ause1-redis-prod-myapp-main`        |
+| Cluster           | `ause1-cache-prod-myapp-main`        |
+| Serverless Cache  | `ause1-cache-prod-myapp-main`        |
+| Subnet Group      | `ause1-cache-subnet-prod-myapp-main` |
+| Parameter Group   | `ause1-cache-pg-prod-myapp-redis71`  |
+| User Group        | `ause1-cache-ug-prod-myapp-main`     |
 
 Region prefix is auto-detected from the AWS provider region (29 regions supported). Override with `region_prefix` variable or disable with `use_region_prefix = false`.
 
 ## Requirements
 
 | Name      | Version |
-|-----------|---------|
+| --------- | ------- |
 | terraform | ~> 1.0  |
 | aws       | ~> 6.0  |
 
