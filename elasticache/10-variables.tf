@@ -222,7 +222,7 @@ variable "users" {
     user_id              = optional(string)
     user_name            = optional(string)
     access_string        = string
-    engine               = optional(string, "REDIS")
+    engine               = optional(string, "redis")
     no_password_required = optional(bool)
     passwords            = optional(list(string))
     authentication_mode = optional(object({
