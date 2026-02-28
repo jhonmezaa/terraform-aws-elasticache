@@ -5,7 +5,7 @@
 resource "aws_elasticache_serverless_cache" "this" {
   for_each = { for k, v in var.serverless_caches : k => v if var.create }
 
-  name   = "${local.name_prefix}cache-${var.account_name}-${var.project_name}-${each.key}"
+  name   = "${local.name_prefix}sc-${var.account_name}-${var.project_name}-${each.key}"
   engine = each.value.engine
 
   description          = coalesce(each.value.description, "Serverless cache for ${each.key}")
@@ -18,8 +18,7 @@ resource "aws_elasticache_serverless_cache" "this" {
   snapshot_arns_to_restore = each.value.snapshot_arns_to_restore
   snapshot_retention_limit = each.value.snapshot_retention_limit
 
-  user_group_id = coalesce(
-    each.value.user_group_id,
+  user_group_id = each.value.user_group_id != null ? each.value.user_group_id : (
     each.value.user_group_key != null ? aws_elasticache_user_group.this[each.value.user_group_key].user_group_id : null
   )
 
@@ -49,6 +48,6 @@ resource "aws_elasticache_serverless_cache" "this" {
   }
 
   tags = merge(var.tags, each.value.tags, {
-    Name = "${local.name_prefix}cache-${var.account_name}-${var.project_name}-${each.key}"
+    Name = "${local.name_prefix}sc-${var.account_name}-${var.project_name}-${each.key}"
   })
 }
