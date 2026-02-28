@@ -16,13 +16,11 @@ resource "aws_elasticache_cluster" "this" {
   az_mode                      = each.value.az_mode
   preferred_availability_zones = length(each.value.preferred_availability_zones) > 0 ? each.value.preferred_availability_zones : null
 
-  parameter_group_name = coalesce(
-    each.value.parameter_group_name,
+  parameter_group_name = each.value.parameter_group_name != null ? each.value.parameter_group_name : (
     each.value.parameter_group_key != null ? aws_elasticache_parameter_group.this[each.value.parameter_group_key].name : null
   )
 
-  subnet_group_name = coalesce(
-    each.value.subnet_group_name,
+  subnet_group_name = each.value.subnet_group_name != null ? each.value.subnet_group_name : (
     each.value.subnet_group_key != null ? aws_elasticache_subnet_group.this[each.value.subnet_group_key].name : null
   )
 
