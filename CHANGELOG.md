@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.7] - 2026-10-27
+
+### Changed
+
+- Docs: normalize CHANGELOG format (preamble moved to the top, `v`-prefixed version headers)
+- Docs: add missing CHANGELOG entries for v1.0.1, v1.0.2 and v1.0.3
+
 ## [v1.0.6] - 2026-10-27
 
 ### Fixed
@@ -22,6 +29,25 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Update README documentation and CHANGELOG formatting
+
+## [v1.0.3] - 2026-02-28
+
+### Changed
+
+- Update README
+
+## [v1.0.2] - 2026-02-28
+
+### Fixed
+
+- Replace `coalesce()` with conditional expressions for `parameter_group_name`, `subnet_group_name` and `user_group_id` cross-references in cluster, replication group and serverless resources (`coalesce()` errors when all arguments are null)
+- Shorten serverless cache name prefix from `cache-` to `sc-` to stay within the AWS 40-character limit for serverless cache names
+
+## [v1.0.1] - 2026-02-27
+
+### Fixed
+
+- Use lowercase `redis` as default engine for the `users` variable (AWS provider deprecated case-insensitive matching for `engine` in `aws_elasticache_user`)
 
 ## [v1.0.0] - 2026-02-27
 
