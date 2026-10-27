@@ -176,8 +176,8 @@ Region prefix is auto-detected from the AWS provider region (29 regions supporte
 
 | Name      | Version |
 | --------- | ------- |
-| terraform | ~> 1.0  |
-| aws       | ~> 6.0  |
+| terraform | >= 1.3  |
+| aws       | >= 6.0  |
 
 ## Examples
 

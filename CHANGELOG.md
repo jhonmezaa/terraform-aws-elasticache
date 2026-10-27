@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [v1.0.5] - 2026-10-27
+
+### Changed
+
+- Use minimum-only version constraints in the reusable module: AWS provider `~> 6.0` -> `>= 6.0`
+- Set module `required_version` to `>= 1.3` (was `~> 1.0`): the module uses `optional()` object type attributes, introduced in Terraform 1.3
+- Example root modules keep pessimistic `~>` constraints (AWS provider `~> 6.0`, Terraform `~> 1.3`)
+- Update requirements in README accordingly
+
 ## [v1.0.4] - 2026-04-25
 
 ### Changed
