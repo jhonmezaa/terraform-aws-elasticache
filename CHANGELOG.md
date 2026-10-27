@@ -1,6 +1,12 @@
 # Changelog
 
 
+## [v1.0.6] - 2026-10-27
+
+### Fixed
+
+- Replace deprecated `data.aws_region.current.id` with `data.aws_region.current.region` (deprecated in AWS provider v6)
+
 ## [v1.0.5] - 2026-10-27
 
 ### Changed
