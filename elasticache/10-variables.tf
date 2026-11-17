@@ -14,12 +14,12 @@ variable "account_name" {
 
   validation {
     condition     = length(var.account_name) > 0 && length(var.account_name) <= 32
-    error_message = "account_name must be between 1 and 32 characters."
+    error_message = "account_name debe tener entre 1 y 32 caracteres."
   }
 
   validation {
     condition     = can(regex("^[a-z0-9-]+$", var.account_name))
-    error_message = "account_name can only contain lowercase letters, numbers, and hyphens."
+    error_message = "account_name solo puede contener letras minúsculas, números y guiones."
   }
 }
 
@@ -29,12 +29,12 @@ variable "project_name" {
 
   validation {
     condition     = length(var.project_name) > 0 && length(var.project_name) <= 32
-    error_message = "project_name must be between 1 and 32 characters."
+    error_message = "project_name debe tener entre 1 y 32 caracteres."
   }
 
   validation {
     condition     = can(regex("^[a-z0-9-]+$", var.project_name))
-    error_message = "project_name can only contain lowercase letters, numbers, and hyphens."
+    error_message = "project_name solo puede contener letras minúsculas, números y guiones."
   }
 }
 
@@ -50,8 +50,14 @@ variable "use_region_prefix" {
   default     = true
 }
 
+variable "tags_common" {
+  description = "Common tags applied to all resources."
+  type        = map(string)
+  default     = {}
+}
+
 variable "tags" {
-  description = "Additional tags to apply to all resources."
+  description = "(Deprecated: use tags_common) Additional tags applied to all resources. Merged after tags_common."
   type        = map(string)
   default     = {}
 }
@@ -61,12 +67,13 @@ variable "tags" {
 # =============================================================================
 
 variable "replication_groups" {
-  description = "Map of Redis replication groups to create. This is the primary use case for Redis with HA."
+  description = "Map of Redis/Valkey replication groups to create. This is the primary use case for Redis/Valkey with HA."
   type = map(object({
+    name                        = optional(string)
     description                 = optional(string)
     engine                      = optional(string, "redis")
     engine_version              = optional(string, "7.1")
-    node_type                   = string
+    node_type                   = optional(string)
     num_cache_clusters          = optional(number)
     num_node_groups             = optional(number)
     replicas_per_node_group     = optional(number)
@@ -100,15 +107,49 @@ variable "replication_groups" {
     data_tiering_enabled        = optional(bool, false)
     network_type                = optional(string)
     ip_discovery                = optional(string)
+    global_replication_group_id = optional(string)
     log_delivery_configuration = optional(list(object({
       destination      = string
       destination_type = string
       log_format       = optional(string, "json")
       log_type         = string
     })), [])
+    timeouts = optional(object({
+      create = optional(string)
+      update = optional(string)
+      delete = optional(string)
+    }))
     tags = optional(map(string), {})
   }))
   default = {}
+
+  validation {
+    condition = alltrue([
+      for k, v in var.replication_groups : !(v.multi_az_enabled || v.automatic_failover_enabled) || v.num_node_groups != null || v.num_cache_clusters == null || try(v.num_cache_clusters >= 2, true)
+    ])
+    error_message = "automatic_failover_enabled/multi_az_enabled requieren num_cache_clusters >= 2 (o modo cluster con num_node_groups); con un solo nodo pon automatic_failover_enabled = false y multi_az_enabled = false."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.replication_groups : v.node_type != null || v.global_replication_group_id != null
+    ])
+    error_message = "node_type es obligatorio en replication_groups salvo para miembros secundarios de un global datastore (global_replication_group_id)."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.replication_groups : v.auth_token == null || v.transit_encryption_enabled || v.global_replication_group_id != null
+    ])
+    error_message = "auth_token requiere transit_encryption_enabled = true."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.replication_groups : v.name == null || try(length(v.name) <= 40, false)
+    ])
+    error_message = "El name explícito de un replication group no puede superar 40 caracteres."
+  }
 }
 
 # =============================================================================
@@ -116,15 +157,21 @@ variable "replication_groups" {
 # =============================================================================
 
 variable "clusters" {
-  description = "Map of ElastiCache clusters to create (primarily for Memcached)."
+  description = "Map of ElastiCache clusters to create (Memcached, standalone Redis/Valkey, or read replicas attached to a replication group via replication_group_id/replication_group_key)."
   type = map(object({
+    name                         = optional(string)
+    replication_group_id         = optional(string)
+    replication_group_key        = optional(string)
     engine                       = optional(string, "memcached")
     engine_version               = optional(string)
-    node_type                    = string
+    node_type                    = optional(string)
     num_cache_nodes              = optional(number, 1)
     port                         = optional(number, 11211)
     az_mode                      = optional(string)
+    availability_zone            = optional(string)
     preferred_availability_zones = optional(list(string), [])
+    outpost_mode                 = optional(string)
+    preferred_outpost_arn        = optional(string)
     parameter_group_name         = optional(string)
     parameter_group_key          = optional(string)
     subnet_group_name            = optional(string)
@@ -139,11 +186,44 @@ variable "clusters" {
     ip_discovery                 = optional(string)
     snapshot_retention_limit     = optional(number)
     snapshot_window              = optional(string)
+    snapshot_arns                = optional(list(string), [])
     snapshot_name                = optional(string)
     final_snapshot_identifier    = optional(string)
-    tags                         = optional(map(string), {})
+    log_delivery_configuration = optional(list(object({
+      destination      = string
+      destination_type = string
+      log_format       = optional(string, "json")
+      log_type         = string
+    })), [])
+    timeouts = optional(object({
+      create = optional(string)
+      update = optional(string)
+      delete = optional(string)
+    }))
+    tags = optional(map(string), {})
   }))
   default = {}
+
+  validation {
+    condition = alltrue([
+      for k, v in var.clusters : v.node_type != null || v.replication_group_id != null || v.replication_group_key != null
+    ])
+    error_message = "node_type es obligatorio en clusters salvo para réplicas unidas a un replication group (replication_group_id/replication_group_key)."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.clusters : !(v.replication_group_id != null && v.replication_group_key != null)
+    ])
+    error_message = "En clusters, replication_group_id y replication_group_key son excluyentes."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.clusters : v.name == null || try(length(v.name) <= 50, false)
+    ])
+    error_message = "El name explícito de un cluster no puede superar 50 caracteres."
+  }
 }
 
 # =============================================================================
@@ -153,6 +233,7 @@ variable "clusters" {
 variable "serverless_caches" {
   description = "Map of ElastiCache serverless caches to create."
   type = map(object({
+    name                     = optional(string)
     engine                   = optional(string, "redis")
     major_engine_version     = optional(string, "7")
     description              = optional(string)
@@ -175,9 +256,21 @@ variable "serverless_caches" {
         minimum = optional(number)
       }))
     }))
+    timeouts = optional(object({
+      create = optional(string)
+      update = optional(string)
+      delete = optional(string)
+    }))
     tags = optional(map(string), {})
   }))
   default = {}
+
+  validation {
+    condition = alltrue([
+      for k, v in var.serverless_caches : v.name == null || try(length(v.name) <= 40, false)
+    ])
+    error_message = "El name explícito de una serverless cache no puede superar 40 caracteres."
+  }
 }
 
 # =============================================================================
@@ -187,6 +280,7 @@ variable "serverless_caches" {
 variable "subnet_groups" {
   description = "Map of ElastiCache subnet groups to create."
   type = map(object({
+    name        = optional(string)
     subnet_ids  = list(string)
     description = optional(string)
     tags        = optional(map(string), {})
@@ -201,6 +295,7 @@ variable "subnet_groups" {
 variable "parameter_groups" {
   description = "Map of ElastiCache parameter groups to create."
   type = map(object({
+    name        = optional(string)
     family      = string
     description = optional(string)
     parameters = optional(list(object({
@@ -241,6 +336,7 @@ variable "users" {
 variable "user_groups" {
   description = "Map of ElastiCache user groups to create for Redis ACL."
   type = map(object({
+    name      = optional(string)
     engine    = optional(string, "redis")
     user_ids  = optional(list(string), [])
     user_keys = optional(list(string), [])
@@ -256,6 +352,7 @@ variable "user_groups" {
 variable "global_replication_groups" {
   description = "Map of ElastiCache global replication groups to create."
   type = map(object({
+    name                                 = optional(string)
     global_replication_group_description = optional(string)
     primary_replication_group_key        = string
     automatic_failover_enabled           = optional(bool, true)

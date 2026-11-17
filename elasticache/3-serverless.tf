@@ -5,7 +5,7 @@
 resource "aws_elasticache_serverless_cache" "this" {
   for_each = { for k, v in var.serverless_caches : k => v if var.create }
 
-  name   = "${local.name_prefix}sc-${var.account_name}-${var.project_name}-${each.key}"
+  name   = local.serverless_cache_names[each.key]
   engine = each.value.engine
 
   description          = coalesce(each.value.description, "Serverless cache for ${each.key}")
@@ -47,7 +47,18 @@ resource "aws_elasticache_serverless_cache" "this" {
     }
   }
 
-  tags = merge(var.tags, each.value.tags, {
-    Name = "${local.name_prefix}sc-${var.account_name}-${var.project_name}-${each.key}"
+  dynamic "timeouts" {
+    for_each = each.value.timeouts != null ? [each.value.timeouts] : []
+
+    content {
+      create = timeouts.value.create
+      update = timeouts.value.update
+      delete = timeouts.value.delete
+    }
+  }
+
+  tags = merge(local.tags_common, each.value.tags, {
+    Name      = local.serverless_cache_names[each.key]
+    ManagedBy = "Terraform"
   })
 }

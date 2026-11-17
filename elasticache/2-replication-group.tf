@@ -2,28 +2,40 @@
 # ElastiCache Replication Groups (Redis)
 # =============================================================================
 
+locals {
+  # Secondary members of a global datastore inherit engine, engine version,
+  # node type, encryption, parameter group and shard count from the global
+  # replication group, so those arguments must be null (provider conflicts).
+  replication_group_is_global_member = {
+    for k, v in var.replication_groups : k => v.global_replication_group_id != null
+  }
+}
+
 resource "aws_elasticache_replication_group" "this" {
   for_each = { for k, v in var.replication_groups : k => v if var.create }
 
-  replication_group_id = "${local.name_prefix}redis-${var.account_name}-${var.project_name}-${each.key}"
-  description          = coalesce(each.value.description, "Redis replication group for ${each.key}")
+  replication_group_id        = local.replication_group_names[each.key]
+  description                 = coalesce(each.value.description, "Redis replication group for ${each.key}")
+  global_replication_group_id = each.value.global_replication_group_id
 
-  engine         = each.value.engine
-  engine_version = each.value.engine_version
-  node_type      = each.value.node_type
+  engine         = local.replication_group_is_global_member[each.key] ? null : each.value.engine
+  engine_version = local.replication_group_is_global_member[each.key] ? null : each.value.engine_version
+  node_type      = local.replication_group_is_global_member[each.key] ? null : each.value.node_type
 
   # Non-cluster mode: num_cache_clusters
   num_cache_clusters = each.value.num_node_groups == null ? each.value.num_cache_clusters : null
 
   # Cluster mode: num_node_groups (shards) + replicas_per_node_group
-  num_node_groups         = each.value.num_node_groups
+  num_node_groups         = local.replication_group_is_global_member[each.key] ? null : each.value.num_node_groups
   replicas_per_node_group = each.value.replicas_per_node_group
   cluster_mode            = each.value.cluster_mode
 
   port = each.value.port
 
-  parameter_group_name = each.value.parameter_group_name != null ? each.value.parameter_group_name : (
-    each.value.parameter_group_key != null ? aws_elasticache_parameter_group.this[each.value.parameter_group_key].name : null
+  parameter_group_name = local.replication_group_is_global_member[each.key] ? null : (
+    each.value.parameter_group_name != null ? each.value.parameter_group_name : (
+      each.value.parameter_group_key != null ? aws_elasticache_parameter_group.this[each.value.parameter_group_key].name : null
+    )
   )
 
   subnet_group_name = each.value.subnet_group_name != null ? each.value.subnet_group_name : (
@@ -38,8 +50,8 @@ resource "aws_elasticache_replication_group" "this" {
   preferred_cache_cluster_azs = length(each.value.preferred_cache_cluster_azs) > 0 ? each.value.preferred_cache_cluster_azs : null
 
   # Encryption
-  at_rest_encryption_enabled = each.value.at_rest_encryption_enabled
-  transit_encryption_enabled = each.value.transit_encryption_enabled
+  at_rest_encryption_enabled = local.replication_group_is_global_member[each.key] ? null : each.value.at_rest_encryption_enabled
+  transit_encryption_enabled = local.replication_group_is_global_member[each.key] ? null : each.value.transit_encryption_enabled
   transit_encryption_mode    = each.value.transit_encryption_mode
   kms_key_id                 = each.value.at_rest_encryption_enabled ? each.value.kms_key_id : null
 
@@ -55,8 +67,8 @@ resource "aws_elasticache_replication_group" "this" {
   maintenance_window         = each.value.maintenance_window
   snapshot_window            = each.value.snapshot_window
   snapshot_retention_limit   = each.value.snapshot_retention_limit
-  snapshot_arns              = length(each.value.snapshot_arns) > 0 ? each.value.snapshot_arns : null
-  snapshot_name              = each.value.snapshot_name
+  snapshot_arns              = local.replication_group_is_global_member[each.key] || length(each.value.snapshot_arns) == 0 ? null : each.value.snapshot_arns
+  snapshot_name              = local.replication_group_is_global_member[each.key] ? null : each.value.snapshot_name
   final_snapshot_identifier  = each.value.final_snapshot_identifier
   auto_minor_version_upgrade = each.value.auto_minor_version_upgrade
   apply_immediately          = each.value.apply_immediately
@@ -83,7 +95,18 @@ resource "aws_elasticache_replication_group" "this" {
     }
   }
 
-  tags = merge(var.tags, each.value.tags, {
-    Name = "${local.name_prefix}redis-${var.account_name}-${var.project_name}-${each.key}"
+  dynamic "timeouts" {
+    for_each = each.value.timeouts != null ? [each.value.timeouts] : []
+
+    content {
+      create = timeouts.value.create
+      update = timeouts.value.update
+      delete = timeouts.value.delete
+    }
+  }
+
+  tags = merge(local.tags_common, each.value.tags, {
+    Name      = local.replication_group_names[each.key]
+    ManagedBy = "Terraform"
   })
 }

@@ -5,7 +5,7 @@
 resource "aws_elasticache_global_replication_group" "this" {
   for_each = { for k, v in var.global_replication_groups : k => v if var.create }
 
-  global_replication_group_id_suffix   = "${local.name_prefix}redis-global-${var.account_name}-${var.project_name}-${each.key}"
+  global_replication_group_id_suffix   = local.global_replication_group_suffixes[each.key]
   global_replication_group_description = coalesce(each.value.global_replication_group_description, "Global replication group for ${each.key}")
 
   primary_replication_group_id = aws_elasticache_replication_group.this[each.value.primary_replication_group_key].id

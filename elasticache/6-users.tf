@@ -22,8 +22,9 @@ resource "aws_elasticache_user" "this" {
     }
   }
 
-  tags = merge(var.tags, each.value.tags, {
-    Name = "${local.name_prefix}cache-user-${var.account_name}-${var.project_name}-${coalesce(each.value.user_id, each.key)}"
+  tags = merge(local.tags_common, each.value.tags, {
+    Name      = "${local.name_prefix}cache-user-${var.account_name}-${var.project_name}-${coalesce(each.value.user_id, each.key)}"
+    ManagedBy = "Terraform"
   })
 }
 
@@ -34,7 +35,7 @@ resource "aws_elasticache_user" "this" {
 resource "aws_elasticache_user_group" "this" {
   for_each = { for k, v in var.user_groups : k => v if var.create }
 
-  user_group_id = "${local.name_prefix}cache-ug-${var.account_name}-${var.project_name}-${each.key}"
+  user_group_id = local.user_group_names[each.key]
   engine        = each.value.engine
 
   user_ids = concat(
@@ -42,8 +43,9 @@ resource "aws_elasticache_user_group" "this" {
     [for uk in each.value.user_keys : aws_elasticache_user.this[uk].user_id]
   )
 
-  tags = merge(var.tags, each.value.tags, {
-    Name = "${local.name_prefix}cache-ug-${var.account_name}-${var.project_name}-${each.key}"
+  tags = merge(local.tags_common, each.value.tags, {
+    Name      = local.user_group_names[each.key]
+    ManagedBy = "Terraform"
   })
 
   lifecycle {
