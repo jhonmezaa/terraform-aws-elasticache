@@ -14,11 +14,6 @@ variable "project_name" {
   type        = string
 }
 
-variable "vpc_id" {
-  description = "VPC ID for the ElastiCache subnet group."
-  type        = string
-}
-
 variable "private_subnet_ids" {
   description = "List of private subnet IDs for the ElastiCache subnet group."
   type        = list(string)
@@ -28,4 +23,10 @@ variable "security_group_ids" {
   description = "List of security group IDs for the ElastiCache cluster."
   type        = list(string)
   default     = []
+}
+
+variable "log_retention_in_days" {
+  description = "Retention in days for the Redis slow log CloudWatch log group."
+  type        = number
+  default     = 14
 }

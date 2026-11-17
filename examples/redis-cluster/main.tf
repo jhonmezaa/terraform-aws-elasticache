@@ -10,6 +10,12 @@
 # - Log delivery to CloudWatch
 # =============================================================================
 
+# CloudWatch log group for Redis slow logs
+resource "aws_cloudwatch_log_group" "slow_log" {
+  name              = "/aws/elasticache/${var.account_name}-${var.project_name}-redis-cluster/slow-log"
+  retention_in_days = var.log_retention_in_days
+}
+
 module "elasticache" {
   source = "../../elasticache"
 
@@ -71,11 +77,21 @@ module "elasticache" {
       snapshot_window          = "03:00-04:00"
       snapshot_retention_limit = 14
 
+      # Logs
+      log_delivery_configuration = [
+        {
+          destination      = aws_cloudwatch_log_group.slow_log.name
+          destination_type = "cloudwatch-logs"
+          log_format       = "json"
+          log_type         = "slow-log"
+        }
+      ]
+
       apply_immediately = true
     }
   }
 
-  tags = {
+  tags_common = {
     Environment = var.account_name
     Project     = var.project_name
     Example     = "redis-cluster"
