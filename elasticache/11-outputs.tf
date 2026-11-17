@@ -14,8 +14,14 @@ output "replication_groups" {
       configuration_endpoint_address = v.configuration_endpoint_address
       port                           = v.port
       member_clusters                = v.member_clusters
+      global_replication_group_id    = v.global_replication_group_id
     }
   }
+}
+
+output "replication_group_names" {
+  description = "Map of replication group keys to their replication group IDs (known at plan time)."
+  value       = { for k, v in aws_elasticache_replication_group.this : k => v.replication_group_id }
 }
 
 output "replication_group_ids" {
@@ -57,8 +63,14 @@ output "clusters" {
       cache_nodes            = v.cache_nodes
       cluster_address        = v.cluster_address
       configuration_endpoint = v.configuration_endpoint
+      replication_group_id   = v.replication_group_id
     }
   }
+}
+
+output "cluster_names" {
+  description = "Map of cluster keys to their cluster IDs (known at plan time)."
+  value       = { for k, v in aws_elasticache_cluster.this : k => v.cluster_id }
 }
 
 output "cluster_ids" {
@@ -99,6 +111,11 @@ output "serverless_caches" {
       create_time          = v.create_time
     }
   }
+}
+
+output "serverless_cache_names" {
+  description = "Map of serverless cache keys to their names."
+  value       = { for k, v in aws_elasticache_serverless_cache.this : k => v.name }
 }
 
 output "serverless_cache_arns" {
