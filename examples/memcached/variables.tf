@@ -14,11 +14,6 @@ variable "project_name" {
   type        = string
 }
 
-variable "vpc_id" {
-  description = "VPC ID for the ElastiCache subnet group."
-  type        = string
-}
-
 variable "private_subnet_ids" {
   description = "List of private subnet IDs for the ElastiCache subnet group."
   type        = list(string)

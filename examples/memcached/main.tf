@@ -54,7 +54,7 @@ module "elasticache" {
     }
   }
 
-  tags = {
+  tags_common = {
     Environment = var.account_name
     Project     = var.project_name
     Example     = "memcached"
